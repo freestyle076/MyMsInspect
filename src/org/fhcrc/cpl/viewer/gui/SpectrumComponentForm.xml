@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2003-2012 Fred Hutchinson Cancer Research Center
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<panel id="contentPanel" constraints="BorderLayout.CENTER" layout="GridBagLayout"  bundle="org.fhcrc.cpl.localization.MSInspectText">
+	<!-- controls -->
+	<panel layout="GridBagLayout">
+		<gridbagconstraints gridx="0" gridy="0" weightx="1" weighty="0" fill="GridBagConstraints.HORIZONTAL" anchor="GridBagConstraints.WEST"/>
+
+		<label text="SCAN">
+			<gridbagconstraints id="hbox" gridx="0" gridy="0" weightx="0" weighty="0" insets="2,5,2,5"/>
+		</label>
+		<spinner id="scanSpinner" minimumSize="80,20" preferredSize="80,20">
+			<gridbagconstraints refid="hbox" gridx="1"/>
+		</spinner>
+		<label text="TIME">
+			<gridbagconstraints refid="hbox" gridx="2"/>
+		</label>
+		<textfield id="timeTextField" enabled="false" minimumSize="80,20" preferredSize="80,20">
+			<gridbagconstraints refid="hbox" gridx="3"/>
+		</textfield>
+		<label text="M_OVER_Z">
+			<gridbagconstraints refid="hbox" gridx="4"/>
+		</label>
+		<spinner id="mzSpinner" minimumSize="80,20">
+			<gridbagconstraints refid="hbox" gridx="5"/>
+		</spinner>
+		<combobox id="displayMode" minimumSize="170,20">
+			<gridbagconstraints refid="hbox" gridx="6"/>
+		</combobox>
+		<combobox id="spectrumElutionComboBox" minimumSize="90,20">
+			<gridbagconstraints refid="hbox" gridx="7"/>
+		</combobox>
+		<panel preferredSize="1000,0">
+			<gridbagconstraints refid="hbox" gridx="10" weightx="2" fill="GridBagConstraints.HORIZONTAL"/>
+		</panel>
+		<button id="copyButton" text="COPY">
+			<gridbagconstraints refid="hbox" gridx="11"/>
+		</button>
+	</panel>
+
+	<!-- chart -->
+	<panel id="chartArea">
+		<gridbagconstraints gridx="0" gridy="1" weightx="1" weighty="2" fill="GridBagConstraints.BOTH" anchor="GridBagConstraints.NORTHWEST"/>
+	</panel>
+</panel>

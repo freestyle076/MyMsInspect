@@ -1,0 +1,660 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<project name="viewer" default="compile" basedir=".">
+
+    <!-- New build area structure is:
+       build/viewer/classes  - classes and resources                 ${build.classes}
+       build/viewer/lib      - dest for viewer.jar and viewerApp.jar ${build.lib}
+       build/viewer/tmp      - transient for one-jar                 ${build.tmp}
+       build/viewer/dist     - signed JARs + jnlp + resources        ${build.dist}
+       build/viewer/dist-src - build-drop src tree for export        ${build.src}
+       build/viewer/schemas/src  - xmlbeans generated sources        ${xmlbean.src}
+       build/viewer/schemas/classes  - xmlbeans build dir            ${xmlbean.classes}
+       build/viewer/schemas/msInspectSchemas.jar - xmlbeans jar      ${schemas.jar}
+    -->
+
+    <!-- TODO:
+             - Copy splash.gif and icon.gif from signed.home to viewer
+             - makeApp should not run every time dist is run
+             - Remove readme.txt from signed.home
+             - Don't put build files in viewer.jar
+      -->
+
+    <!-- ============================================================ -->
+    <!-- Property Definitions                                         -->
+    <!-- ============================================================ -->
+    <property name="app.name"	    value="${ant.project.name}"/>
+    <property name="app.version"    value=""/>
+
+    <property name="viewer.jar"     value="${app.name}${app.version}.jar"/>
+    <property name="toolbox.jar"     value="msinspect_toolbox.jar"/>
+    <property name="toolbox_proteomics.jar"     value="msinspect_toolbox_proteomics.jar"/>
+    <property name="viewerApp.jar"  value="${app.name}App${app.version}.jar"/>
+
+    <property name="build.home"     value="${basedir}/build"/>
+    <property name="build.classes"  value="${build.home}/classes"/>
+    <property name="build.proteomicstoolclasses_relative"  value="org/fhcrc/cpl/toolbox/proteomics"/>
+    <property name="build.msinspectclasses_relative"  value="org/fhcrc/cpl/viewer"/>
+    <property name="build.lib"      value="${build.home}/lib"/>
+    <property name="build.tmp"      value="${build.home}/tmp"/>
+    <property name="build.dist"     value="${build.home}/dist"/>
+    <property name="build.src"      value="${build.home}/dist-src"/>
+    <property name="build.doc"      value="${build.home}/doc"/>
+
+    <property name="src.home"       value="${basedir}"/>
+    <property name="etc.dir"       value="${basedir}/etc"/>
+    <property name="src.lib"        value="${basedir}/lib"/>
+    <property name="signed.home"    value="${basedir}/mzxml-signed"/>
+    <property name="build.deploytemp"    value="${build.home}/deploytemp"/>
+    <property name="lib.dir"        value="${basedir}/lib"/>  
+    <property name="lib.dir.database" value="${lib.dir}/database"/>
+    <property name="lib.dir.cdk"	value="${lib.dir}/cdk"/>
+    <property name="swixml.jar.filename" value="swixml-1.5.jar"/>
+    <property name="xbean.jar.filename" value="xbean.jar"/>
+
+    <property name="schemas.msinspect"	 value="${src.home}/schemas"/>
+
+    <property name="build.schemas"	 value="${build.home}/schemas"/>
+    <property name="xmlbean.src"         value="${build.schemas}/src"/>
+    <property name="xmlbean.classes"     value="${build.schemas}/classes"/>
+
+    <property name="schemas.jar"    value="${build.lib}/msInspectSchemas.jar"/>
+
+    <property name="compile.debug"       value="true"/>
+    <property name="compile.deprecation" value="false"/>
+    <property name="compile.optimize"    value="true"/>
+
+    <path id="compile.classpath">
+        <fileset dir="${lib.dir}">
+            <include name="*.jar"/>
+            <exclude name="${swixml.jar.filename}"/>
+	</fileset>
+        <fileset dir="${lib.dir.database}">
+            <include name="*.jar"/>
+        </fileset>
+        <fileset dir="${lib.dir.cdk}">
+            <include name="*.jar"/>
+        </fileset>
+        <pathelement path="${schemas.jar}"/>
+        <pathelement path="${build.lib}/${swixml.jar.filename}"/>
+    </path>
+
+    <path id="swixml.compile.classpath">
+        <fileset dir="${lib.dir}">
+            <include name="*.jar"/>
+            <exclude name="${xbean.jar.filename}"/>
+	</fileset>
+	<pathelement path="${schemas.jar}"/>
+    </path>
+
+    <path id="schemas.compile.classpath">
+        <fileset dir="${lib.dir}">
+            <include name="*.jar"/>
+	    </fileset>
+    </path>
+
+    <!--Classpath for running applications with only msInspect platform dependencies-->
+    <path id="toolbox.run.classpath">
+        <fileset dir="${lib.dir}">
+            <include name="activation.jar"/>
+            <include name="apml_parser_v2.jar"/>
+            <include name="commons-beanutils-1.7.jar"/>
+            <include name="commons-collections-3.2.jar"/>
+            <include name="commons-discovery-0.2.jar"/>
+            <include name="commons-lang-2.3.jar"/>
+            <include name="commons-logging.jar"/>
+            <include name="jai_codec.jar"/>
+            <include name="jai_core.jar"/>
+            <include name="Jama-1.0.2.jar"/>
+            <include name="jcommon-1.0.16.jar"/>
+            <include name="jdom.jar"/>
+            <include name="jfreechart-1.0.13.jar"/>
+            <include name="junit-4.1.jar"/>
+            <include name="log4j-1.2.8.jar"/>
+            <include name="mail.jar"/>
+            <include name="stax-api-1.0.1.jar"/>
+            <include name="ui.jar"/>
+            <include name="wstx-lgpl-3.2.1.jar"/>
+            <include name="xbean-2.3.0.jar"/>
+            <include name="xercesImpl.jar"/>
+            <include name="xml-apis-1.2.01.jar"/>
+        </fileset>
+        <pathelement path="${build.lib}/${toolbox.jar}"/>
+    </path>
+
+    <taskdef name="xmlbean"
+        classname="org.apache.xmlbeans.impl.tool.XMLBean"
+        classpathref="schemas.compile.classpath"/>
+
+    <!-- ============================================================ -->
+    <!-- Usage information                                            -->
+    <!-- ============================================================ -->
+    <target name="help">
+        <echo message="${app.name} has the following top-level targets:"/>
+        <echo message=""/>
+        <echo message="   compile - Compile java sources to ${build.classes}"/>
+        <echo message="       run - Run the msInspect viewer (with no args) directlty from build tree"/>
+        <echo message="       jar - Build ${viewer.jar} from compiled classes"/>
+        <echo message="   makeApp - Build ${viewerApp.jar} from ${viewer.jar} and external libs"/>
+        <echo message="      dist - Sign jars and build a distribution in ${build.dist}"/>
+        <echo message="               and archive in ${app.name}${app.version}-dist.zip"/>
+        <echo message="  dist-src - Build a source drop in ${app.name}${app.version}-dist-src.zip"/>
+        <echo message="     clean - Remove the msInspect build area  ${build.home}"/>
+        <echo message="      help - Print this help message"/>
+        <echo message=""/>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Initialize                                                   -->
+    <!-- ============================================================ -->
+    <target name="init">
+         <tstamp>
+             <format property="buildtime" pattern="yyyy-MM-dd HH:mm"/>
+         </tstamp>
+
+        <mkdir dir="${build.home}"/>
+        <mkdir dir="${build.classes}"/>
+        <mkdir dir="${build.lib}"/>
+        <mkdir dir="${build.dist}"/>
+        <mkdir dir="${build.src}"/>
+
+        <copy todir="${build.classes}">
+            <fileset dir="${src.home}">
+                <include name="log4j.xml"/>
+                <include name="LICENSE"/>
+                <include name="NOTICES"/>
+            </fileset>
+            <fileset dir="${src.home}/src">
+                <include name="**/*.gif"/>
+                <include name="**/*.png"/>
+                <include name="**/*.properties"/>
+                <include name="**/*.xml"/>
+                <include name="**/*.html"/>
+                <include name="**/*.R"/>
+            </fileset>
+        </copy>
+
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Build javadocs                                               -->
+    <!-- ============================================================ -->
+    <target name="doc" depends="init"  description="Init and build javadocs">
+        <mkdir dir="${build.doc}"/>
+  	<javadoc packagenames="org.fhcrc.cpl.*"
+           source="1.6"
+           sourcepath="${src.home}/src"
+           classpathref="compile.classpath"
+           defaultexcludes="yes"
+           destdir="${build.doc}"
+           author="true"
+           version="true"
+           windowtitle="msInspect API">
+    		<doctitle><![CDATA[<h1>msInspect</h1>]]></doctitle>
+    		<bottom><![CDATA[<i>Fred Hutchinson Cancer Research Center</i>]]></bottom>
+    		<link href="http://proteomics.fhcrc.org/msinspect/docs/api/"/>
+  	</javadoc>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Clean build to stage                                         -->
+    <!-- ============================================================ -->
+    <target name="all" depends="clean,compile,jar,dist,dist-src"  description="Clean build and dist directories, then compile"/>
+
+    <!-- ============================================================ -->
+    <!-- Drop the build area                                          -->
+    <!-- ============================================================ -->
+    <target name="clean" description="Delete old build and dist directories">
+        <delete dir="${build.home}"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Build custom swixml jar                                             -->
+    <!-- =================================================================== -->
+    <target name="build_custom_swixml" depends="init">
+        <javac srcdir="${src.home}/src"
+               destdir="${build.classes}"
+               debug="${compile.debug}"
+               deprecation="${compile.deprecation}"
+               optimize="${compile.optimize}"
+               source="1.6"
+               target="1.6"
+               includes="org/swixml/**" listfiles="yes">
+            <classpath>
+                <path refid="swixml.compile.classpath"/>
+            </classpath>
+        </javac>
+        <copy todir="${build.lib}" file="${lib.dir}/${swixml.jar.filename}"/>
+        <jar jarfile="${build.lib}/${swixml.jar.filename}"
+             update="true"
+             basedir="${build.classes}">
+             <include name="org/swixml/**"/>
+        </jar>
+    </target>
+
+
+    <!-- =================================================================== -->
+    <!-- Build schemas jar                                                   -->
+    <!-- =================================================================== -->
+    <target name="uptodate_mzxml_schema">
+        <uptodate property="schemauptodate" targetfile="${schemas.jar}">
+            <srcfiles dir="${schemas.msinspect}" includes="mzXML_idx_2.1.xsd"/>
+        </uptodate>
+    </target>
+
+    <target name="uptodate_amtxml_schema">
+        <uptodate property="schemauptodate" targetfile="${schemas.jar}">
+            <srcfiles dir="${schemas.msinspect}" includes="amtXml.xsd"/>
+        </uptodate>
+    </target>
+
+    <target name="uptodate_pepxml_schema">
+        <uptodate property="schemauptodate" targetfile="${schemas.jar}">
+            <srcfiles dir="${schemas.msinspect}" includes="pepXML.xsd"/>
+        </uptodate>
+    </target>
+
+    <!-- Build the mzXML schema xmlbeans -->
+    <target name="build_mzxml_schema"
+            depends="uptodate_mzxml_schema"
+            description="Compile mzxml schema"
+            unless="schemauptodate">
+
+        <mkdir dir="${xmlbean.classes}"/>
+
+        <xmlbean
+            schema="${schemas.msinspect}/mzXML_idx_2.1.xsd"
+            srcgendir="${xmlbean.src}"
+            classgendir="${xmlbean.classes}"
+            classpathref="schemas.compile.classpath"
+            failonerror="true"/>
+    </target>
+
+    <!-- Build the amtXML schema xmlbeans -->
+    <target name="build_amtxml_schema"
+            depends="uptodate_amtxml_schema"
+            description="Compile amtxml schema"
+            unless="schemauptodate">
+
+        <mkdir dir="${xmlbean.classes}"/>
+
+        <xmlbean
+            schema="${schemas.msinspect}/amtXml.xsd"
+            srcgendir="${xmlbean.src}"
+            classgendir="${xmlbean.classes}"
+            classpathref="schemas.compile.classpath"
+            failonerror="true"/>
+    </target>
+
+    <!-- Build the amtXML schema xmlbeans -->
+    <target name="build_pepxml_schema"
+            depends="uptodate_pepxml_schema"
+            description="Compile pepxml schema"
+            unless="schemauptodate">
+
+        <mkdir dir="${xmlbean.classes}"/>
+
+        <xmlbean
+            schema="${schemas.msinspect}/pepXML.xsd"
+            srcgendir="${xmlbean.src}"
+            classgendir="${xmlbean.classes}"
+            classpathref="schemas.compile.classpath"
+            failonerror="true"/>
+    </target>
+
+    <!-- Jar up all the xmlbeans classes -->
+    <target name="build_schemas"
+            depends="init,build_mzxml_schema,build_amtxml_schema,build_pepxml_schema"
+            description="Builds XML Beans schemas jar">
+        <jar jarfile="${schemas.jar}" basedir="${xmlbean.classes}"/>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Compile                                                      -->
+    <!-- ============================================================ -->
+    <target name="compile" depends="init,-write-build-properties,build_schemas,build_custom_swixml" description="Compile Java sources">
+        <!-- Compile Java classes as necessary -->
+        <javac srcdir="${src.home}/src"
+               destdir="${build.classes}"
+               debug="${compile.debug}"
+               deprecation="${compile.deprecation}"
+               optimize="${compile.optimize}"
+               source="1.6"
+               target="1.6"
+               excludes="swixml/**">
+<!--            <compilerarg value="-Xlint:unchecked"/> -->
+            <classpath>
+                <path refid="compile.classpath"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Build viewer.jar                                             -->
+    <!-- ============================================================ -->
+    <target name="jar" depends="compile">
+        <jar jarfile="${build.lib}/${viewer.jar}"
+             basedir="${build.classes}"
+             excludes="build*.xml"/>
+    </target>
+
+
+    <!-- ============================================================ -->
+    <!-- Build msinspect_toolbox.jar                                  -->
+    <!-- Note: this target actually builds all msInspect code         -->
+    <!-- (including the msInspect, AMT, and MRM apps) and then just   -->
+    <!-- JARs up the toolbox (platform) code, with proteomics tools.  -->
+    <!-- ============================================================ -->
+    <target name="jar_toolbox_proteomics" depends="compile">
+        <jar jarfile="${build.lib}/${toolbox_proteomics.jar}"
+             basedir="${build.classes}"
+             excludes="${build.msinspectclasses_relative}/**"/>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Build msinspect_toolbox.jar                                  -->
+    <!-- Note: this target actually builds all msInspect code         -->
+    <!-- (including the msInspect, AMT, and MRM apps) and then just   -->
+    <!-- JARs up the toolbox (platform) code. No proteomics tools     -->
+    <!-- ============================================================ -->
+    <target name="jar_toolbox" depends="compile">
+        <jar jarfile="${build.lib}/${toolbox.jar}"
+             basedir="${build.classes}"
+             excludes="${build.msinspectclasses_relative}/**,${build.proteomicstoolclasses_relative}/**"/>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Run directly from the build area                             -->
+    <!-- ============================================================ -->
+    <target name="run" depends="compile" description="Run directly from the build area">
+        <java classname="org.fhcrc.cpl.viewer.Application" fork="true" failonerror="true">
+            <classpath>
+                <path refid="compile.classpath"/>
+                <pathelement path="${build.classes}"/>
+            </classpath>
+        </java>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Create a properties file from the Subversion info            -->
+    <!-- ============================================================ -->
+    <target name="-write-build-properties" depends="init">
+        <!-- The way we get the SVN revision is kind of hacky - we rely on the fact
+        that Ant will parse the "svn info" file as a properties file, which is true
+        for the elements about which we care, but not for all the values.  -->
+        <property name="svn.output" value="${build.home}/.svn.info"/>
+        <exec executable="svn" output="${svn.output}" failifexecutionfails="false">
+            <arg value="info"/>
+        </exec>
+        <!-- Make sure there's actually a file - it won't be created if we can't run the SVN client -->
+        <touch file="${svn.output}"/>
+
+        <copy tofile="${build.classes}/revision.properties" overwrite="true" preservelastmodified="true">
+            <fileset file="${src.home}/revision.properties.template"/>
+            <filterset begintoken="@@" endtoken="@@">
+                <filtersfile file="${svn.output}"/>
+                <filter token="BuildTime" value="${buildtime}"/>
+                <filter token="BuildOS" value="${os.name}"/>
+                <filter token="BuildUser" value="${user.name}"/>
+                <filter token="BuildJDK" value="${java.version}"/>
+                <filter token="URL" value="Not built from a Subversion source tree"/>
+                <filter token="Revision" value=""/>
+            </filterset>
+        </copy>
+    </target>
+
+    <target name="-checkApp">
+        <uptodate property="appuptodate" srcfile="${build.lib}/${viewer.jar}" targetfile="${build.lib}/${viewerApp.jar}"/>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Prepare files for one-jar wrapping.                          --> 
+    <!-- Everything but CPAS client                                   -->
+    <!-- ============================================================ -->
+    <target name="prepare_onejar_files" depends="jar,-checkApp" unless="appuptodate">
+
+        <mkdir dir="${build.tmp}"/>
+        <mkdir dir="${build.tmp}/lib"/>
+        <mkdir dir="${build.tmp}/main"/>
+        <copy todir="${build.tmp}/lib" file="${schemas.jar}">
+            <fileset dir="${lib.dir}">
+                <include name="*.jar"/>
+                <exclude name="junit.jar"/>
+                <exclude name="${swixml.jar.filename}"/>
+            <!-- The Database dependency jars are large and should be added optionally -->
+            <!-- These guys are huge and only used by the disabled 3D spectrum renderer -->
+                <exclude name="j3dcore.jar"/>
+                <exclude name="j3dutils.jar"/>
+                <exclude name="vecmath.jar"/>
+                <exclude name="database/*.jar"/>
+	    </fileset>
+            <fileset dir="${build.lib}">
+                <include name="${swixml.jar.filename}"/>
+            </fileset>
+            <!-- ???? Be sure to add new ${lib.dir} jars here -->
+        </copy>
+
+
+        <copy file="${build.lib}/${viewer.jar}" todir="${build.tmp}/main"/>
+
+        <copy file="${src.home}/NOTICES" todir="${build.tmp}"/>
+        <copy file="${src.home}/LICENSE" todir="${build.tmp}"/>
+    </target>
+
+    <target name="build_onejar" depends="jar,-checkApp" unless="appuptodate">
+        <unjar src="${etc.dir}/one-jar-boot.jar" dest="${build.tmp}"/>
+
+        <copy file="${etc.dir}/one-jar.properties" todir="${build.tmp}"/>
+
+        <jar destfile="${build.lib}/${viewerApp.jar}"
+             basedir="${build.tmp}"
+             manifest="${build.tmp}/boot-manifest.mf"/>
+        <delete dir="${build.tmp}"/>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- copy CPAS client dependency jars to one-jar directory        -->
+    <!-- ============================================================ -->
+    <target name="copy_database_jars">
+        <copy todir="${build.tmp}/lib">
+            <fileset dir="${lib.dir.database}"/>
+        </copy>
+    </target>
+
+
+    <!-- ============================================================ -->
+    <!-- Build viewerApp.jar, without CPAS client support or database support                                                       -->
+    <!-- ============================================================ -->
+    <target name="makeApp" depends="jar,-checkApp" unless="appuptodate"
+            description="copy to exploded webapp, then jar everything up, unsigned">
+        <mkdir dir="${build.deploytemp}"/>
+        <unjar  dest="${build.deploytemp}" overwrite="false">
+            <fileset dir="${lib.dir}">
+                <include name="*.jar"/>
+                <!-- These guys are huge and only used by the disabled 3D spectrum renderer -->
+                <exclude name="j3dcore.jar"/>
+                <exclude name="j3dutils.jar"/>
+                <exclude name="vecmath.jar"/>
+                <!-- The Database dependency jars are large and should be added optionally -->
+                <exclude name="database/*.jar"/>
+            </fileset>
+            <fileset dir="${lib.dir.cdk}">
+                <include name="*.jar"/>
+            </fileset>
+            <fileset file="${schemas.jar}"/>
+            <fileset file="${build.lib}/${viewer.jar}"/>
+        </unjar>
+
+        <!-- unsign everything as we add it to the jar-->
+        <jar jarfile="${build.lib}/${viewerApp.jar}"
+             update="true"
+             basedir="${build.deploytemp}"
+             excludes="META-INF/*.MF,META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"
+             manifest="${etc.dir}/MANIFEST.MF">
+             <include name="**"/>
+        </jar>
+        <touch file="${build.lib}/${viewerApp.jar}" />
+    </target>
+    
+
+    <!-- ==================================================================== -->
+    <!-- Build viewerApp.jar, without CPAS client support or database support -->
+    <!-- ==================================================================== -->
+    <target name="makeApp_onejar" depends="prepare_onejar_files,build_onejar" unless="appuptodate">
+    </target>
+
+    <!-- ================================================================== -->
+    <!-- Build viewerApp.jar, with CPAS client support and database support -->
+    <!-- ================================================================== -->
+    <target name="makeApp_with_db" depends="prepare_onejar_files,copy_database_jars,build_onejar" unless="appuptodate">
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- "unsign" a JAR                                               -->
+    <!-- ============================================================ -->
+    <target name="unsignjar">
+        <tempfile property="tempdir" destDir="${build.home}"/>
+        <unjar src="${jarparam}" dest="${tempdir}"/>
+        <delete file="${jarparam}"/>
+        <jar basedir="${tempdir}"
+             destfile="${jarparam}"
+             excludes="META-INF/*.MF,META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA" update="true"/>
+        <delete dir="${tempdir}"/>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Build the distribution                                       -->
+    <!-- ============================================================ -->
+    <target name="dist" depends="makeApp">
+
+        <!-- msInspect Jars -->
+        <copy todir="${build.dist}">
+            <fileset dir="${build.lib}">
+                <include name="**/*.jar"/>
+            </fileset>
+        </copy>
+
+        <!-- External Jars -->
+        <copy todir="${build.dist}">
+            <fileset dir="${lib.dir}">
+                <include name="*.jar"/>
+                <exclude name="${viewerApp.jar}"/>
+                <!-- These guys are huge and only used by the disabled 3D spectrum renderer -->
+                <exclude name="j3dcore.jar"/>
+                <exclude name="j3dutils.jar"/>
+                <exclude name="vecmath.jar"/>
+            </fileset>
+            <!-- ???? Be sure to add new ${lib.dir} jars here -->
+        </copy>
+        <copy todir="${build.dist}">
+            <fileset dir="${lib.dir.cdk}">
+                <include name="*.jar"/>
+            </fileset>
+        </copy> 
+        <!-- Supporting resources -->
+        <copy todir="${build.dist}">
+            <fileset dir="${etc.dir}">
+                <exclude name="one-jar*.*"/>
+                <exclude name="keys*"/>
+                <exclude name="*.jar"/>
+            </fileset>
+        </copy>
+
+        <!-- xercesImpl.jar and xml-apis-1.2.01.jar are already signed -->
+        <antcall target="unsignjar">
+             <param name="jarparam" value="${build.dist}/xercesImpl.jar"/>
+        </antcall>
+        <antcall target="unsignjar">
+             <param name="jarparam" value="${build.dist}/xml-apis-1.2.01.jar"/>
+        </antcall>
+
+        <!-- Sign them for release; might want to prompt for storepass, such as   -->
+        <!-- <input message="Enter keystore password: " addproperty="storepass"/> -->
+
+        <signjar keystore="${etc.dir}/keys" alias="cpas.fhcrc.org" storepass="ediviewer">
+            <fileset dir="${build.dist}">
+                <include name="**/*.jar"/>
+                <exclude name="${viewerApp.jar}"/>
+            </fileset>
+        </signjar>
+
+        <zip destfile="${build.home}/${app.name}${app.version}-dist.zip" basedir="${build.dist}"/>
+
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Build a source drop for complilation at a remote site        -->
+    <!-- ============================================================ -->
+    <target name="dist-src" depends="init,build_schemas,build_custom_swixml">
+        <mkdir dir="${build.src}"/>
+        <mkdir dir="${build.src}/src"/>
+        <mkdir dir="${build.src}/lib"/>
+
+        <!-- External Jars -->
+        <copy todir="${build.src}/lib">
+            <fileset dir="${lib.dir}">
+                <include name="**/*.jar"/>
+            </fileset>
+            <!-- ???? Be sure to add new ${lib.dir} jars here -->
+        </copy>
+
+        <!-- shell script for running the thing -->
+        <copy todir="${build.src}" file="${basedir}/viewer.sh"/>
+
+        <!-- xmlbeans-generated code -->
+        <copy file="${schemas.jar}" todir="${build.src}/lib" />
+
+        <!-- customized swixml -->
+        <copy file="${build.lib}/${swixml.jar.filename}" todir="${build.src}/lib" />
+
+        <!-- Sources -->
+        <copy todir="${build.src}/src">
+            <fileset dir="${src.home}">
+                <include name="log4j.xml"/>
+                <include name="NOTICES"/>
+                <include name="LICENSE"/>
+            </fileset>
+        </copy>
+
+        <copy todir="${build.src}/src">
+            <fileset dir="${src.home}/src">
+                <include name="org/**"/>
+                <include name="modwt/**"/>
+            </fileset>                          
+        </copy>
+
+        <copy file="${src.home}/build-drop.xml" tofile="${build.src}/build.xml"/>
+
+        <zip destfile="${build.home}/${app.name}${app.version}-dist-src.zip" basedir="${build.src}"/>
+
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Zip up the source home for our own archiving purposes        -->
+    <!-- ============================================================ -->
+    <target name="zip-src">
+        <zip destfile="${build.home}/${app.name}${app.version}-archive-src.zip" basedir="${src.home}"/>
+    </target>
+
+
+    <!-- ============================================================ -->
+    <!-- Cruise Control                                               -->
+    <!-- ============================================================ -->
+    <target name="cruisecontrol" depends="clean,compile">
+        <echo message="******************** Starting msInspect DRT ********************"/>
+        <ant inheritall="true" antfile="test/build.xml" target="drt"/>
+        <echo message="******************** Completed msInspect DRT ********************"/>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Run the msInspect Platform Demo App                          -->
+    <!-- Requires that the user provide the "-Dfile=<file>" argument. -->
+    <!-- Unfortunately, I don't think Ant provides a better way to    -->
+    <!-- capture command line arguments than that.                    -->
+    <!-- ============================================================ -->
+    <target name="platform_demo" depends="jar_toolbox">
+        <java fork="yes" classpathref="toolbox.run.classpath"
+              classname="org.fhcrc.cpl.toolbox.commandline.DemoCommandModule">
+            <arg line="${file}"/>
+        </java>
+    </target>
+</project>
