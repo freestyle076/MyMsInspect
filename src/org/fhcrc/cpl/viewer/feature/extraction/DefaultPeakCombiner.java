@@ -77,7 +77,7 @@ public class DefaultPeakCombiner extends BasePeakCombiner
         _log.debug("ExtractPeptideFeatures(" + peaksIN.length + ")");
 
         //TODO: really should set some parameters in FeatureScorer here (maxDist and resamplingFreq), but not sure if we want to surface those in interface
-
+        
         //
         // store peaks in 2-D tree for searching
         //
@@ -109,6 +109,7 @@ public class DefaultPeakCombiner extends BasePeakCombiner
         //
 
 
+        //** for each focused peak **
         for (Spectrum.Peak peakHighest : peaksByIntensity)
         {
             if (peakHighest.excluded)
@@ -133,25 +134,31 @@ public class DefaultPeakCombiner extends BasePeakCombiner
             // get collection of nearby peaks
             Spectrum.Peak[] peaks;
 
+            //** get peaks that are within the mz/RT range || this is an R-Tree query!!!!**
             ArrayList<Spectrum.Peak> peakList =
                     peaks2D.getPoints(scanStart, mzWindowStart, scanEnd, mzWindowEnd);
+            
             for (int p = peakList.size()-1; p>=0 ; p--)
             {
                 if ((peakList.get(p)).excluded)
                     peakList.remove(p);
             }
+            
             // eliminate possible duplicates and get one list of peaks sorted by mz
             Spectrum.Peak[] peaksNear = peakList.toArray(new Spectrum.Peak[peakList.size()]);
             assert peaksNear.length > 0;
+            
+            //** sort mz primary, intensity secondary **
             Arrays.sort(peaksNear, Spectrum.comparePeakIntensityDesc);
             Arrays.sort(peaksNear, Spectrum.comparePeakMzAsc);
             int lenPeaks = 0;
+            
+            //** remove duplicates (equal mz) nearby peaks by keeping peak nearest focus peak **
             for (int s = 1; s < peaksNear.length; s++)
             {
                 if (peaksNear[lenPeaks].mz == peaksNear[s].mz)
                 {
-                    if (Math.abs(peaksNear[s].scan-peakHighest.scan) <
-                            Math.abs(peaksNear[lenPeaks].scan-peakHighest.scan))
+                    if (Math.abs(peaksNear[s].scan-peakHighest.scan) < Math.abs(peaksNear[lenPeaks].scan-peakHighest.scan))
                         peaksNear[lenPeaks] = peaksNear[s];
                 }
                 else
@@ -183,6 +190,8 @@ public class DefaultPeakCombiner extends BasePeakCombiner
 
             double maxResampledDistanceBetweenFeatures =
                     _maxAbsDistanceBetweenPeaks / (SpectrumResampler.getResampleFrequency() - 1);
+            
+            //** iterate through nearby peaks to the left (mz) of focused peak **
             for (Spectrum.Peak p : peaks)
             {
             	// we are looking for the mono-isotopic peak 
@@ -194,18 +203,30 @@ public class DefaultPeakCombiner extends BasePeakCombiner
                 // to be smaller than about 1/6 highest peak, and typically much larger
                 if (p.intensity < peakHighest.intensity / 10.0F)
                     continue;
+                
+                //** mz distance focused peak and nearby peak **
                 double distance = peakHighest.mz - p.mz;
 
+                //** iterate through charge states **
                 for (int absCharge = Math.abs(_maxCharge); absCharge >= 1; absCharge--)
                 {
+                    //** difference between recorded distance and expected distance **
                     double r = distanceNearestFraction(distance, absCharge);
+                    
                     if (r < 2 * maxResampledDistanceBetweenFeatures)
                     {
                         Feature f = newFeatureRange(peakHighest, p.mz,
                                 negativeChargeMode ? -absCharge : absCharge);
+                        
+                        //** find nearby peaks fitting charge pattern, score distribution using kullback-leibler poisson distro **
+                        //** resulting set of peaks does not necessarily include focused peak **
                         f.dist = _featureScorer.scoreFeature(f, peaks);
+                        
+                        //** skip if scoring results in only one peak, or scoring removes focused peak **
+                        
                         if (f.peaks == 1)
                             continue;
+                        
                         boolean containsPeakHighest = false;
                         for (Spectrum.Peak comprisedPeak : f.comprised)
                         {
@@ -222,15 +243,13 @@ public class DefaultPeakCombiner extends BasePeakCombiner
 //too much detail
 //                       _log.debug("\tCandidate: " + f);
                     }
-                }
+                } //** end charge loop **
 
-            }
+            } //** end nearby points loop **
 
 
-
+            //** find highest scoring feature **
             Feature bestFeature = determineBestFeature(candidates);
-
-
 
             if (bestFeature == null)
             {
@@ -323,11 +342,12 @@ public class DefaultPeakCombiner extends BasePeakCombiner
                 }
             }
             assert peakHighest.excluded;
-        }
+        } //** end peak loop **
+        
         return featureList.toArray(new Feature[featureList.size()]);
     }
 
-
+    //** distance, charge **
     static double distanceNearestFraction(double x, double denom)
     {
         // scale so we can do distance to nearest integer
@@ -365,6 +385,7 @@ public class DefaultPeakCombiner extends BasePeakCombiner
         // It's hard to choose dynamically as the input set is often small
         //
 
+        //** find min and max kl scores **
         double min = candidates.get(0).kl;
         double max = min;
         for (Feature candidate : candidates)
@@ -372,6 +393,8 @@ public class DefaultPeakCombiner extends BasePeakCombiner
             min = Math.min(candidate.kl, min);
             max= Math.max(candidate.kl, max);
         }
+        
+        //** remove candidates whose scores are above min + .5 ** 
         for (int i=candidates.size()-1 ; i>=0 ; i--)
         {
             Feature candidate = candidates.get(i);
@@ -388,9 +411,13 @@ public class DefaultPeakCombiner extends BasePeakCombiner
         Set<Feature> prunedSet = new HashSet<Feature>(candidates);
         // NOTE we rely on the candidate list being sorted by MZ ASC,CHARGE DESC,
         // see ExtractPeptideFeatures
+        
+        //** prune candidates **
         for (int i=0 ; i<candidates.size()-1 ; i++)
         {
             Feature a = candidates.get(i);
+            
+            //** for all other candidate features **
             for (int j=i+1 ; j<candidates.size() ; j++)
             {
                 Feature b = candidates.get(j);

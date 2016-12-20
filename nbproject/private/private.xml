@@ -3,16 +3,17 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/Users/kyle/Documents/MS%20Sources/MyMsInspect/src/org/fhcrc/cpl/toolbox/ApplicationContext.java</file>
-            <file>file:/Users/kyle/Documents/MS%20Sources/MyMsInspect/src/org/fhcrc/cpl/toolbox/proteomics/feature/FeatureGrouper.java</file>
-            <file>file:/Users/kyle/Documents/MS%20Sources/MyMsInspect/src/org/fhcrc/cpl/toolbox/proteomics/feature/FeatureClusterer.java</file>
-            <file>file:/Users/kyle/Documents/MS%20Sources/MyMsInspect/src/org/fhcrc/cpl/viewer/feature/FeatureExtractor.java</file>
-            <file>file:/Users/kyle/Documents/MS%20Sources/MyMsInspect/src/org/fhcrc/cpl/viewer/Application.java</file>
-            <file>file:/Users/kyle/Documents/MS%20Sources/MyMsInspect/src/org/fhcrc/cpl/toolbox/proteomics/feature/Feature.java</file>
-            <file>file:/Users/kyle/Documents/MS%20Sources/MyMsInspect/src/org/fhcrc/cpl/toolbox/proteomics/PeptideGenerator.java</file>
-            <file>file:/Users/kyle/Documents/MS%20Sources/MyMsInspect/src/org/fhcrc/cpl/toolbox/commandline/CommandLineModule.java</file>
-            <file>file:/Users/kyle/Documents/MS%20Sources/MyMsInspect/src/org/fhcrc/cpl/toolbox/proteomics/feature/Deconvoluter.java</file>
-            <file>file:/Users/kyle/Documents/MS%20Sources/MyMsInspect/src/org/fhcrc/cpl/toolbox/proteomics/Clusterer2D.java</file>
+            <file>file:/home/kyle/Documents/MyMsInspect/src/org/fhcrc/cpl/viewer/feature/extraction/FeatureFinder.java</file>
+            <file>file:/home/kyle/Documents/MyMsInspect/src/org/fhcrc/cpl/viewer/feature/extraction/FeatureFindingBroker.java</file>
+            <file>file:/home/kyle/Documents/MyMsInspect/src/org/fhcrc/cpl/viewer/feature/extraction/DefaultFeatureScorer.java</file>
+            <file>file:/home/kyle/Documents/MyMsInspect/src/org/fhcrc/cpl/toolbox/proteomics/feature/Spectrum.java</file>
+            <file>file:/home/kyle/Documents/MyMsInspect/src/org/fhcrc/cpl/viewer/feature/FeatureExtractor.java</file>
+            <file>file:/home/kyle/Documents/MyMsInspect/src/org/fhcrc/cpl/viewer/feature/extraction/DefaultPeakCombiner.java</file>
+            <file>file:/home/kyle/Documents/MyMsInspect/src/org/fhcrc/cpl/viewer/feature/extraction/strategy/FeatureStrategyPeakClusters.java</file>
+            <file>file:/home/kyle/Documents/MyMsInspect/src/org/fhcrc/cpl/viewer/feature/extraction/strategy/BaseFeatureStrategyModular.java</file>
+            <file>file:/home/kyle/Documents/MyMsInspect/src/org/fhcrc/cpl/viewer/commandline/modules/FindPeptidesCommandLineModule.java</file>
+            <file>file:/home/kyle/Documents/MyMsInspect/src/org/fhcrc/cpl/viewer/feature/extraction/strategy/BaseFeatureStrategy.java</file>
+            <file>file:/home/kyle/Documents/MyMsInspect/src/org/fhcrc/cpl/viewer/feature/extraction/strategy/FeatureStrategyWindow.java</file>
         </group>
     </open-files>
 </project-private>

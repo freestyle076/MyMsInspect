@@ -93,9 +93,14 @@ public class DefaultFeatureScorer implements FeatureScorer
         boolean skippedPeak = false;
         float distSum = 0;
         float distCount = 0;
+        
+        //** search for associated peaks according to charge of feature **
         for (int Pi = 0; Pi < peptidePeaks.length; Pi++)
         {
+            //** theoretical position of next peak in feature (according to charge) **
             float mzPi = mzP0 + Pi * invAbsCharge + (distCount > 0 ? distSum/distCount : 0);
+            
+            //** get nearest peak to theoretical mz **
             p = findClosestPeak(peaks, mzPi, p);
             Spectrum.Peak peakFound = peaks[p];
             float dist = Math.abs(peakFound.mz - mzPi);
@@ -165,6 +170,8 @@ public class DefaultFeatureScorer implements FeatureScorer
         //This block also determines which peaks are "counted" in the Feature.peaks count.
         //Only features with intensity >= 1/50th of the most-intense peaks, and greater than twice
         //the median background noise, are counted
+        
+        //** create relative intensities array **
         int signalLength = Math.min(6, _maxPeaksPerFeature);
         float[] signal = new float[signalLength];
         int countPeaks = 0;

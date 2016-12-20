@@ -143,6 +143,7 @@ public abstract class FeatureStrategyWindow extends BaseFeatureStrategy
             _status.progress(0.0F);
 
         //main loop
+        //** iterate through scan windows **
         do
         {
             endWindowScan = Math.min(scans.length, scanNum+windowWidth);
@@ -152,6 +153,7 @@ public abstract class FeatureStrategyWindow extends BaseFeatureStrategy
                              0, endWindowScan-startWindowScan);
 
             //resample just the spectra in this window
+            //** rearrange scans into 2D float array [scan_ix][peak_ix] = intensity **
             float[][] resampledSpectra =
                     resampleSpectra(currentScanWindow);
 
